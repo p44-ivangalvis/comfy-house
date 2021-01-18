@@ -9,6 +9,9 @@ const cartItems = document.querySelector(".cart-items");
 const cartTotal = document.querySelector(".cart-total");
 const cartContent = document.querySelector(".cart-content");
 const productsDOM = document.querySelector(".products-center");
+//this wont be displayed since the objects have not been rendered
+const buttonsTest = document.querySelectorAll("bag-btn");
+console.log(buttonsTest);
 
 //cart
 let cart =[];
@@ -52,16 +55,81 @@ class UI {
             </article>
             `
         });
-        return productsDOM.innerHTML = result;
+        productsDOM.innerHTML = result;
+    }
+
+    getBagButtons(){
+        const buttons = [...document.querySelectorAll("bag-btn")];
+        buttons.forEach(button => {
+            let id = button.dataset.id;
+            let inCart = cart.find(item => item.id === id);
+            if(inCart){
+                button.innerText = 'in Cart';
+                button.disabled = true;
+            }else{
+                // here we are adding an event listener to each button if the id of that button is not in the cart object
+                button.addEventListener("click", event => {
+                    console.log(event);
+                    event.target.innerText = "in Cart";
+                    event.target.disabled = true;
+                    //get product from products
+                    let cartItem = {...Storage.getProduct(id), amount: 1};
+                    //add product to the cart
+                    cart = [...cart, cartItem]
+                    //save cart in lical storage
+                    Storage.saveCart(cart);
+                    //set cart values
+                    this.setCartValues(cart);
+                    //add and display cart item
+                    this.addCartItem();
+                    //show the cart and show the overlay
+                })
+            }
+        })
+    }
+
+    setCartValues(cart){
+        let tempTotal = 0;
+        let itemsTotal = 0;
+        cart.map(item => {
+            tempTotal += item.price * item.amount;
+            itemsTotal += item.amount;
+        });
+        cartTotal.innerText = parseFloat(tempTotal.toFixed(2));
+        cartItems.innerText = itemsTotal;
+
+        console.log(cartTotal, cartItems);
+    }
+
+    addCartItem(item){
+
     }
 }
 
 //local storage
-class Storage  {}
+class Storage  {
+    static saveProducts(products) {
+        localStorage.setItem("products", JSON.stringify(products));
+    }
+
+    static saveCart(cart) {
+        localStorage.setItem("cart", JSON.stringify(cart));
+    }
+
+    static getProduct(id){
+        let products = JSON.parse(localStorage.getItem('products'));
+        return products.find(product => product.id === id);
+    }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     const ui = new UI();
     const products = new Products();
 
-    products.getProducts().then(products => ui.displayProducts(products));
+    products.getProducts().then(products => {
+        ui.displayProducts(products)
+        Storage.saveProducts(products);
+    }).then(() => {
+        ui.getBagButtons();
+    });
 })
